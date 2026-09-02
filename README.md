@@ -2,10 +2,10 @@
 # Experiment 1 – Buffer Overflow Attack
 
 ## Student
-**Name:** Sivanesh Murthi, Patrick Craig, Shreejaa Udaya Sekar 
-**Course:** EEE6744 – Hands-on Hardware Security  
-**Experiment:** Experiment 1 – Buffer Overflow Attack
-**Date:** 09/01/2026
+### Name: Sivanesh Murthi, Patrick Craig, Shreejaa Udaya Sekar 
+### Course: EEE6744 – Hands-on Hardware Security  
+### Experiment: Experiment 1 – Buffer Overflow Attack
+### Date: 09/01/2026
 ---
 
 # 1. Objective
