@@ -1,95 +1,141 @@
+/*
+ * expt1_1.c
+ * Course: EEE 6744 - Hands-on Hardware Security
+ * Date: 08/31/2026
+ * Team: Patrick Craig, Shreejaa Udaya Sekar, Sivanesh Murthi
+ * Assignment: Experiment - 1 (Buffer Overflow Attack)
+ * 
+ * Part I: Code and Test Simple Examples
+ *
+ * Demonstrates:
+ *   1. Heap Buffer Overflow
+ *   2. Integer Overflow
+ *   3. Stack Buffer Overflow
+ *
+ * Compile:
+ *   gcc -w -fno-stack-protector -Wall -pedantic expt1_1.c -o expt1_1
+ *
+ * Run:
+ *   ./expt1_1
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
-void stack_overflow(void)
+
+// 1. HEAP BUFFER OVERFLOW
+
+void heap_overflow_demo(void)
 {
-    char buffer[10];
-    int xyz = 0;
 
-    printf("\nSTACK OVERFLOW\n");
-    printf("A 10-byte character array was created on the stack.\n");
-    printf("It can safely hold 9 characters and the null terminator.\n");
-    printf("The key \"gainesville\" requires 12 bytes: 11 characters plus the null terminator.\n");
-    printf("Entering this key writes 2 bytes past the end of the stack buffer.\n");
-    printf("Those extra bytes could corrupt nearby variables or control information.\n");
-    printf("Enter the key (use gainesville): ");
+    struct heap_data {
+        char buffer[8];
+        unsigned int marker;
+    };
 
-    /* Unsafe: input longer than 9 characters will overflow buffer. */
-    scanf("%s", buffer);
+    struct heap_data *data = malloc(sizeof(struct heap_data));
 
-    printf("The input was stored in the buffer as: %s\n", buffer);
-    printf("The program may continue normally even though an overflow occurred.\n");
-    printf("This is dangerous because memory corruption does not always cause an immediate crash.\n");
-
-    if (strcmp(buffer, "gainesville") == 0)
-    {
-        printf("You entered the right key!\n");
-        xyz = 1;
-    }
-    else
-    {
-        printf("You entered the wrong key!\n");
-    }
-
-    if (xyz)
-    {
-        printf("Access has been given to the user.\n");
-    }
-}
-
-void heap_overflow(void)
-{
-    char *buffer;
-
-    printf("\nHEAP OVERFLOW\n");
-
-    buffer = malloc(10);
-
-    if (buffer == NULL)
-    {
+    if (data == NULL) {
         printf("Memory allocation failed.\n");
         return;
     }
 
-    printf("The program allocated 10 bytes of memory on the heap.\n");
-    printf("It will copy \"gainesville\" into that memory.\n");
-    printf("The string requires 12 bytes: 11 characters plus the null terminator.\n");
-    printf("Therefore, strcpy writes 2 bytes outside the allocated heap buffer.\n");
-    printf("These extra bytes could corrupt another heap object or allocator information.\n");
+    memset(data->buffer, 0, sizeof(data->buffer));
+    data->marker = 0x12345678U;
 
-    /* "gainesville" needs 12 bytes, but only 10 were allocated. */
-    strcpy(buffer, "gainesville");
+    printf("\n========== HEAP OVERFLOW ==========\n");
+    printf("Memory region     : HEAP\n");
+    printf("Structure address : %p\n", (void *)data);
+    printf("Buffer address    : %p\n", (void*)data->buffer);
+    printf("Marker address    : %p\n", (void*)&data->marker);
+  
+    printf("Buffer size       : %zu bytes\n", sizeof(data->buffer));
+    printf("Data being copied : \"ABCDEFGHIJKL\"\n");
+    printf("Characters        : 12\n");
+    printf("Bytes Copied      : 13 (12 characters + '\\0')\n");
+    printf("Overflow amount   : %d bytes\n", 13 - (int)sizeof(data->buffer));
+    printf("Marker before     : 0x%08x\n", data->marker);
 
-    printf("Data stored in heap buffer: %s\n", buffer);
-    printf("The text may print correctly even though memory outside the allocation was overwritten.\n");
+    memcpy(data->buffer, "ABCDEFGHIJKL", 13);
 
-    free(buffer);
+    data->buffer[7] = '\0';
+
+    printf("Marker after      : 0x%08x\n", data->marker);
+    printf("Heap overflow occured: data was written beyond buffer[8] (13 bytes were written into an 8-byte buffer).\n");
+
+    free(data);
 }
 
-void integer_overflow(void)
+
+// 2. INTEGER OVERFLOW
+
+void integer_overflow_demo(void)
 {
-    unsigned char number = 255;
+    unsigned int value = UINT_MAX;
 
-    printf("\nINTEGER OVERFLOW\n");
-    printf("An unsigned char normally stores values from 0 through 255.\n");
-    printf("Number before overflow: %u\n", number);
+    printf("\n========== INTEGER OVERFLOW ==========\n");
+    printf("Data type            : unsigned int\n");
+    printf("Maximum value        : %u\n", UINT_MAX);
+    printf("Value before         : %u\n", value);
+    printf("Operation            : %u + 1\n", value);
 
-    printf("The program adds 1 to 255. The mathematical result should be 256.\n");
-    printf("However, 256 cannot be represented by an unsigned char.\n");
+    value = value + 1U;
 
-    number = number + 1;
+    printf("Value after       : %u\n", value);
+    printf("Integer overflow occured: value wrapped from UINT_MAX to 0 by adding 1.\n");
+}
 
-    printf("Number after overflow: %u\n", number);
-    printf("The value wrapped from 255 back to 0.\n");
-    printf("In a real program, this could produce an incorrect size or security check.\n");
+// 3. STACK BUFFER OVERFLOW
+
+void stack_overflow_demo(void)
+{
+    struct stack_data {
+        char buffer[8];
+        unsigned int marker;
+    };
+
+    struct stack_data data;
+
+    memset(data.buffer, 0, sizeof(data.buffer));
+    data.marker = 0x12345678U;
+
+    printf("\n========== STACK OVERFLOW ==========\n");
+    printf("Memory region     : STACK\n");
+    printf("Structure address : %p\n", (void *)&data);
+    printf("Buffer address    : %p\n", (void*)data.buffer);
+    printf("Marker address    : %p\n", (void*)&data.marker);
+
+    printf("Buffer size       : %zu bytes\n", sizeof(data.buffer));
+    printf("Data being copied : \"ABCDEFGHIJKL\"\n");
+    printf("Characters        : 12\n");
+    printf("Bytes copied      : 13 (12 characters + '\\0')\n");
+    printf("Overflow amount   : %d bytes\n", 13 - (int)sizeof(data.buffer));
+    printf("Marker before     : 0x%08x\n", data.marker);
+
+    memcpy(data.buffer, "ABCDEFGHIJKL", 13);
+
+    data.buffer[7] = '\0';
+
+    printf("Marker after      : 0x%08x\n", data.marker);
+    printf("Stack overflow occured: data was written beyond buffer[8] (13 bytes were written into an 8-byte buffer).\n");
 }
 
 int main(void)
 {
-    heap_overflow();
-    integer_overflow();
-    stack_overflow();
+    printf("====================================================\n");
+    printf("Experiment 1 - Part I\n");
+    printf("Buffer Overflow Attack: Simple Examples\n");
+    printf("====================================================\n");
+
+    heap_overflow_demo();
+    integer_overflow_demo();
+    stack_overflow_demo();
+
+    printf("\n====================================================\n");
+    printf("All three Part I examples completed.\n");
+    printf("====================================================\n");
 
     return 0;
 }
